@@ -1,20 +1,90 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>工件信息（演示）</title><style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1a1a1a;--muted:#6b6f76;--rule:#e3e5e8;--accent:#0b7a43}
-@media (prefers-color-scheme:dark){:root{--bg:#15171a;--card:#1f2226;--ink:#eceff2;--muted:#9aa0a8;--rule:#2e3237;--accent:#3fbf7f}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-main{max-width:720px;margin:0 auto;padding:16px}
-header{padding:8px 0 16px}
-.kicker{color:var(--muted);font-size:13px;letter-spacing:.08em}
-h1{margin:4px 0 0;font-size:24px}
-.card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px;margin-bottom:16px}
-table{width:100%;border-collapse:collapse}
-td{padding:8px 0;border-bottom:1px solid var(--rule)}
-tr:last-child td{border-bottom:0}
-td:first-child{color:var(--muted);width:6em}
-.gallery img{display:block;width:100%;height:auto;border-radius:8px;margin-bottom:12px}
-.note{color:var(--muted);margin:0}
-a{color:var(--accent);text-decoration:none}
-li{padding:6px 0}
-footer{color:var(--muted);font-size:13px;text-align:center;padding:8px 0 24px}
-</style></head><body><main><header><div class="kicker">工件信息（演示）</div><h1>标准件列表</h1></header><section class="card"><ul><li><a href="std/A01.html">A01 红色方块</a></li><li><a href="std/B01.html">B01 蓝色圆盘</a></li></ul></section></main></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>标准件列表 · 凤瞳</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --ink: #0f1726;
+      --secondary: #3a4352;
+      --muted: #7a8394;
+      --accent: #52627a;
+      --pass: #0f9d6b;
+      --fail: #d92d3a;
+      --shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 20px rgba(16,24,40,.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.6 -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: break-word;
+    }
+    .shell { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0 18px; border-bottom: 1px solid var(--border); }
+    .brand { display: block; width: auto; flex: 0 0 auto; }
+    .brand-product { height: 30px; }
+    .brand-team { height: 24px; }
+    .page-heading { padding: 30px 0 22px; }
+    .kicker { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+    h1 { margin: 6px 0 0; font-size: 24px; line-height: 1.4; font-weight: 700; }
+    a { color: var(--accent); text-decoration: none; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+    .site-footer { padding: 24px 0 30px; border-top: 1px solid var(--border); text-align: center; }
+    .footer-logos { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 14px 0; }
+    .footer-logos img { display: block; width: auto; }
+    .company-logo { height: 26px; }
+    .contest-logo { height: 30px; }
+    .signature { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    .standard-card { display: flex; align-items: center; gap: 18px; padding: 18px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); color: var(--ink); }
+    .standard-card:hover { border-color: var(--accent); }
+    .thumbnail { display: block; width: 120px; height: auto; flex: 0 0 auto; border-radius: 12px; }
+    .standard-copy { min-width: 0; }
+    .standard-name { display: block; font-size: 16px; line-height: 1.6; font-weight: 700; }
+    .standard-size { display: block; margin-top: 6px; color: var(--secondary); font-size: 14px; }
+    .site-footer { margin-top: 36px; }
+    @media (max-width: 360px) {
+      .standard-card { gap: 12px; }
+      .standard-name { font-size: 15px; }
+      .standard-size { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar" aria-label="作品与团队">
+      <img class="brand brand-product" src="img/product.png" alt="凤瞳">
+      <img class="brand brand-team" src="img/team.png" alt="义眼盯帧队">
+    </header>
+    <main>
+      <div class="page-heading">
+        <p class="kicker">凤瞳 FPGA 工件质检系统</p>
+        <h1>标准件列表</h1>
+      </div>
+      <a class="standard-card" href="std/A01.html">
+        <img class="thumbnail" src="img/std_A01.png" alt="A01 标准件 60×60×30 mm" width="120" height="90">
+        <span class="standard-copy">
+          <span class="standard-name">A01 标准件 · 方块</span>
+          <span class="standard-size">60 × 60 × 30 mm</span>
+        </span>
+      </a>
+    </main>
+    <footer class="site-footer">
+      <p class="kicker">赛题企业</p>
+      <div class="footer-logos">
+        <img class="company-logo" src="img/company.png" alt="安路科技">
+        <img class="contest-logo" src="img/contest.png" alt="FPGA 创新设计竞赛">
+      </div>
+      <p class="signature">义眼盯帧队 · 凤瞳</p>
+    </footer>
+  </div>
+</body>
+</html>
