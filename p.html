@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>工件质检记录 · 凤瞳</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --ink: #0f1726;
+      --secondary: #3a4352;
+      --muted: #7a8394;
+      --accent: #52627a;
+      --pass: #0f9d6b;
+      --fail: #d92d3a;
+      --shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 20px rgba(16,24,40,.06);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.6 -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .shell { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0 18px; border-bottom: 1px solid var(--border); }
+    .brand { display: block; width: auto; flex: 0 0 auto; }
+    .brand-product { height: 30px; }
+    .brand-team { height: 24px; }
+    .page-heading { padding: 30px 0 22px; }
+    .kicker { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+    h1 { margin: 6px 0 0; font-size: 24px; line-height: 1.4; font-weight: 700; }
+    .subtitle { margin: 10px 0 0; color: var(--secondary); font-size: 14px; }
+    h2 { margin: 0 0 14px; font-size: 17px; line-height: 1.5; font-weight: 700; }
+    .card { padding: 20px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+    .result-card { display: flex; align-items: flex-start; gap: 16px; padding: 22px 20px; }
+    .result-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; font: 700 24px/1 system-ui, sans-serif; }
+    .result-copy { min-width: 0; }
+    .result-title { margin: 1px 0 0; font-size: 28px; line-height: 1.5; }
+    .result-detail { margin: 8px 0 0; font-size: 14px; color: var(--secondary); }
+    .result-pass { background: #edf8f3; border-color: #cee9dc; }
+    .result-pass .result-icon { background: var(--pass); color: #ffffff; }
+    .result-pass .result-title { color: var(--pass); }
+    .result-fail { background: #fff1f2; border-color: #f3d3d7; }
+    .result-fail .result-icon { background: var(--fail); color: #ffffff; }
+    .result-fail .result-title { color: var(--fail); }
+    .result-neutral { background: #eef0f3; border-color: #dde1e7; }
+    .result-neutral .result-icon { background: #dde2e8; color: var(--accent); }
+    .result-neutral .result-title { color: var(--accent); }
+    .measurements { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .measurement { min-width: 0; padding: 12px 8px; border: 1px solid var(--border); border-radius: 12px; background: #f8f9fb; }
+    .measure-label { margin: 0 0 5px; color: var(--muted); font-size: 12px; }
+    .measure-reading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px; }
+    .measure-value { min-width: 0; font-size: clamp(22px, 5.8vw, 30px); line-height: 1.3; font-weight: 700; }
+    .measure-unit { color: var(--muted); font-size: 11px; }
+    .comparison { margin: 8px 0 0; color: var(--secondary); font-size: 11px; line-height: 1.7; }
+    .comparison span { display: inline-block; }
+    .measurement.is-failed { border-color: #f1c6cd; background: #fff6f7; }
+    .measurement.is-failed .measure-value, .measurement.is-failed .comparison { color: var(--fail); }
+    .tolerance { margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+    .specs { width: 100%; border-collapse: collapse; }
+    .specs th, .specs td { padding: 13px 0; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    .specs th { width: 6.5em; padding-right: 16px; color: var(--muted); font-size: 14px; font-weight: 400; }
+    .specs td { font-weight: 600; }
+    .specs tr:last-child th, .specs tr:last-child td { border-bottom: 0; }
+    .specs .is-failed th, .specs .is-failed td { color: var(--fail); }
+    .swatch { display: inline-block; width: 13px; height: 13px; margin-right: 8px; border: 1px solid rgba(15,23,38,.2); border-radius: 4px; vertical-align: -1px; }
+    .standard-link { display: flex; align-items: center; gap: 14px; color: var(--ink); }
+    .standard-link:hover { border-color: var(--accent); }
+    .thumbnail { display: block; flex: 0 0 auto; width: 72px; height: auto; border-radius: 12px; }
+    .standard-copy { min-width: 0; flex: 1; }
+    .standard-name { display: block; font-size: 14px; font-weight: 700; }
+    .standard-caption { display: block; margin-top: 6px; color: var(--secondary); font-size: 12px; }
+    .standard-caption span { display: inline-block; }
+    .chevron { flex: 0 0 auto; color: var(--accent); font-size: 26px; line-height: 1; }
+    .description { margin: 0; color: var(--secondary); }
+    .snapshot-note { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+    .empty-card { margin-top: 28px; padding: 24px 20px; }
+    .empty-card p { margin: 0; color: var(--secondary); }
+    a { color: var(--accent); text-decoration: none; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+    .site-footer { margin-top: 24px; padding: 24px 0 30px; border-top: 1px solid var(--border); text-align: center; }
+    .footer-logos { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 14px 0; }
+    .footer-logos img { display: block; width: auto; }
+    .company-logo { height: 26px; }
+    .contest-logo { height: 30px; }
+    .signature { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    @media (max-width: 360px) {
+      .card { padding: 18px; }
+      .specs th { width: 6em; padding-right: 12px; }
+      .specs td { font-size: 14px; }
+      .standard-link { gap: 10px; }
+      .thumbnail { width: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar" aria-label="作品与团队">
+      <img class="brand brand-product" src="img/product.png" alt="凤瞳">
+      <img class="brand brand-team" src="img/team.png" alt="义眼盯帧队">
+    </header>
+    <main>
+      <section id="empty-state" class="card empty-card" aria-label="没有读到工件数据">
+        <p>没有读到工件数据。请用手机相机或微信扫描工件卡上的二维码打开本页；如果是扫码打开的，可能二维码拍得不完整，请再扫一次。</p>
+      </section>
+      <div id="record" hidden>
+        <div class="page-heading">
+          <p class="kicker">工件质检记录</p>
+          <h1 id="record-title">工件</h1>
+          <p id="record-time" class="subtitle"></p>
+        </div>
+        <section id="result-card" class="card result-card result-neutral" aria-labelledby="result-title">
+          <span id="result-icon" class="result-icon" aria-hidden="true">—</span>
+          <div class="result-copy">
+            <h2 id="result-title" class="result-title">未判定</h2>
+            <p id="result-detail" class="result-detail" hidden></p>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="dimensions-title">
+          <h2 id="dimensions-title">实测尺寸</h2>
+          <div class="measurements">
+            <div id="measure-x" class="measurement">
+              <p class="measure-label">长</p>
+              <div class="measure-reading"><span id="value-x" class="measure-value">—</span><span class="measure-unit">mm</span></div>
+              <p id="comparison-x" class="comparison" hidden><span id="standard-x"></span> <span id="deviation-x"></span></p>
+            </div>
+            <div id="measure-y" class="measurement">
+              <p class="measure-label">宽</p>
+              <div class="measure-reading"><span id="value-y" class="measure-value">—</span><span class="measure-unit">mm</span></div>
+              <p id="comparison-y" class="comparison" hidden><span id="standard-y"></span> <span id="deviation-y"></span></p>
+            </div>
+            <div id="measure-z" class="measurement">
+              <p class="measure-label">厚</p>
+              <div class="measure-reading"><span id="value-z" class="measure-value">—</span><span class="measure-unit">mm</span></div>
+              <p id="comparison-z" class="comparison" hidden><span id="standard-z"></span> <span id="deviation-z"></span></p>
+            </div>
+          </div>
+          <p id="tolerance" class="tolerance" hidden></p>
+        </section>
+        <section class="card" aria-labelledby="appearance-title">
+          <h2 id="appearance-title">外观</h2>
+          <table class="specs">
+            <tbody>
+              <tr id="color-row"><th scope="row">颜色</th><td><span id="color-swatch" class="swatch" aria-hidden="true" hidden></span><span id="color-value">未知</span></td></tr>
+              <tr id="shape-row"><th scope="row">形状</th><td id="shape-value">未识别</td></tr>
+              <tr id="stain-row"><th scope="row">污渍</th><td id="stain-value">未检测</td></tr>
+              <tr><th scope="row">检测方式</th><td id="mode-value">未知</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <a id="standard-link" class="card standard-link" hidden>
+          <img id="standard-image" class="thumbnail" alt="">
+          <span class="standard-copy">
+            <span id="standard-name" class="standard-name"></span>
+            <span class="standard-caption"><span id="standard-caption-size"></span> <span>规格与合格判定</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+        <section class="card" aria-labelledby="method-title">
+          <h2 id="method-title">检测方式</h2>
+          <p class="description">工件放上检测台并稳定后，FPGA 实时完成尺寸测量（ToF 测距 + 图像框选）、颜色与形状识别和污渍检测，判定结果显示在屏幕上，同时通过以太网生成检测卡片。</p>
+          <p class="snapshot-note">本页数据即检测当时的结果，不会再改变。</p>
+        </section>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <p class="kicker">赛题企业</p>
+      <div class="footer-logos">
+        <img class="company-logo" src="img/company.png" alt="安路科技">
+        <img class="contest-logo" src="img/contest.png" alt="FPGA 创新设计竞赛">
+      </div>
+      <p class="signature">义眼盯帧队 · 凤瞳</p>
+    </footer>
+  </div>
+  <script>
+    "use strict";
+
+    // Only this catalogue needs extending when another standard is added.
+    const STD = {
+      A01: { name: "A01 标准件 · 方块", x: 60, y: 60, z: 30, tolXY: 3, tolZ: 5,
+             page: "std/A01.html", img: "img/std_A01.png" },
+    };
+    const COLORS = [
+      { name: "黑色", value: "#202124" },
+      { name: "灰色", value: "#9ca3af" },
+      { name: "白色", value: "#ffffff" },
+      { name: "红色", value: "#d92d3a" },
+      { name: "橙色", value: "#ed8b37" },
+      { name: "黄色", value: "#e8c63a" },
+      { name: "绿色", value: "#269666" },
+      { name: "青色", value: "#31a6b0" },
+      { name: "蓝色", value: "#3b70c4" },
+      { name: "紫色", value: "#9163b8" },
+    ];
+    const SHAPES = { "0": "其他", "1": "圆形", "2": "矩形", "3": "三角形", x: "未识别" };
+    const STAINS = { "0": "无污渍", "1": "有污渍", x: "未检测" };
+    const REASONS = { L: "长", W: "宽", T: "厚", C: "颜色", H: "形状", S: "污渍", X: "其他" };
+    const RESULTS = {
+      P: { title: "合格", icon: "✓", style: "pass" },
+      F: { title: "不合格", icon: "✕", style: "fail" },
+      N: { title: "未判定", icon: "—", style: "neutral" },
+    };
+    const byId = (id) => document.getElementById(id);
+    const owns = (table, key) => Object.prototype.hasOwnProperty.call(table, key);
+    const text = (id, value) => { byId(id).textContent = value; };
+
+    function integer(value) {
+      if (!/^\d+$/.test(value)) return null;
+      const number = Number(value);
+      return Number.isSafeInteger(number) ? number : null;
+    }
+
+    function timestamp(value) {
+      const year = 2000 + Number(value.slice(0, 2));
+      const month = Number(value.slice(2, 4));
+      const day = Number(value.slice(4, 6));
+      const hour = Number(value.slice(6, 8));
+      const minute = Number(value.slice(8, 10));
+      const second = Number(value.slice(10, 12));
+      const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+      if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+          date.getUTCDate() !== day || date.getUTCHours() !== hour ||
+          date.getUTCMinutes() !== minute || date.getUTCSeconds() !== second) return "—";
+      return "20" + value.slice(0, 2) + "-" + value.slice(2, 4) + "-" + value.slice(4, 6) +
+             " " + value.slice(6, 8) + ":" + value.slice(8, 10) + ":" + value.slice(10, 12);
+    }
+
+    function readRecord(hash) {
+      let payload = hash.slice(1);
+      try { payload = decodeURIComponent(payload); } catch { /* Invalid individual fields stay unknown. */ }
+      const parts = payload.split(".");
+      if (parts.length < 12 || parts[0] !== "1" || !/^\d{12}$/.test(parts[2])) return null;
+      const reasonSet = /^[LWTCHSX]+$/.test(parts[11]) ? new Set(parts[11]) : new Set();
+      return {
+        number: /^\d+$/.test(parts[1]) ? parts[1] : "—",
+        time: timestamp(parts[2]),
+        dimensions: [integer(parts[3]), integer(parts[4]), integer(parts[5])],
+        color: /^\d$/.test(parts[6]) ? COLORS[Number(parts[6])] : null,
+        shape: owns(SHAPES, parts[7]) ? SHAPES[parts[7]] : "未知",
+        stain: owns(STAINS, parts[8]) ? STAINS[parts[8]] : "未知",
+        result: owns(RESULTS, parts[9]) ? RESULTS[parts[9]] : { title: "未知", icon: "—", style: "neutral" },
+        resultCode: parts[9],
+        arbitrary: parts[10] === "-",
+        standardCode: /^[A-Za-z][A-Za-z0-9_-]*$/.test(parts[10]) ? parts[10] : null,
+        reasons: reasonSet,
+      };
+    }
+
+    function deviation(value) {
+      return value > 0 ? "+" + value : value < 0 ? "−" + Math.abs(value) : "0";
+    }
+
+    function render() {
+      const record = readRecord(window.location.hash);
+      byId("record").hidden = !record;
+      byId("empty-state").hidden = Boolean(record);
+      document.title = "工件质检记录 · 凤瞳";
+      if (!record) return;
+
+      text("record-title", "工件 No." + record.number);
+      text("record-time", "检测时间 " + record.time);
+      document.title = "工件 No." + record.number + " · 质检记录 · 凤瞳";
+      byId("result-card").className = "card result-card result-" + record.result.style;
+      text("result-title", record.result.title);
+      text("result-icon", record.result.icon);
+      let detail = "";
+      if (record.resultCode === "F") {
+        const names = Array.from(record.reasons, (code) => REASONS[code]);
+        detail = "原因：" + (names.length ? names.join("、") : "—");
+      } else if (record.resultCode === "N") {
+        detail = record.arbitrary ? "任意件只测量尺寸和外观，不做合格判定" : "检测时读数尚未稳定";
+      }
+      text("result-detail", detail);
+      byId("result-detail").hidden = !detail;
+
+      const standard = record.standardCode && owns(STD, record.standardCode) ? STD[record.standardCode] : null;
+      const axes = ["x", "y", "z"];
+      const reasonCodes = ["L", "W", "T"];
+      axes.forEach((axis, index) => {
+        const value = record.dimensions[index];
+        const delta = standard && value !== null ? value - standard[axis] : null;
+        const tolerance = standard ? (axis === "z" ? standard.tolZ : standard.tolXY) : null;
+        text("value-" + axis, value === null ? "—" : String(value));
+        byId("comparison-" + axis).hidden = !standard;
+        text("standard-" + axis, standard ? "标准 " + standard[axis] + " ·" : "");
+        text("deviation-" + axis, standard ? "偏差 " + (delta === null ? "—" : deviation(delta)) : "");
+        const failed = record.reasons.has(reasonCodes[index]) || (delta !== null && Math.abs(delta) > tolerance);
+        byId("measure-" + axis).classList.toggle("is-failed", failed);
+      });
+      byId("tolerance").hidden = !standard;
+      text("tolerance", standard ? "允许偏差：长、宽 ±" + standard.tolXY + " mm，厚 ±" + standard.tolZ + " mm" : "");
+
+      text("color-value", record.color ? record.color.name : "未知");
+      byId("color-swatch").hidden = !record.color;
+      byId("color-swatch").style.backgroundColor = record.color ? record.color.value : "transparent";
+      text("shape-value", record.shape);
+      text("stain-value", record.stain);
+      text("mode-value", record.arbitrary ? "任意件（只测量）" : record.standardCode ? "按 " + record.standardCode + " 标准件比对" : "未知");
+      [["color-row", "C"], ["shape-row", "H"], ["stain-row", "S"]].forEach(([id, reason]) => {
+        byId(id).classList.toggle("is-failed", record.reasons.has(reason));
+      });
+
+      byId("standard-link").hidden = !standard;
+      if (standard) {
+        // Links and image paths come only from the local catalogue, never from the fragment.
+        byId("standard-link").setAttribute("href", standard.page);
+        byId("standard-image").setAttribute("src", standard.img);
+        byId("standard-image").setAttribute("alt", standard.name);
+        text("standard-name", "查看标准件：" + standard.name);
+        text("standard-caption-size", standard.x + " × " + standard.y + " × " + standard.z + " mm ·");
+      } else {
+        byId("standard-link").removeAttribute("href");
+        byId("standard-image").removeAttribute("src");
+      }
+    }
+
+    render();
+    window.addEventListener("hashchange", render);
+  </script>
+</body>
+</html>
