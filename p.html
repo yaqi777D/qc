@@ -80,6 +80,9 @@
     .standard-caption { display: block; margin-top: 6px; color: var(--secondary); font-size: 12px; }
     .standard-caption span { display: inline-block; }
     .chevron { flex: 0 0 auto; color: var(--accent); font-size: 26px; line-height: 1; }
+    .taught-title { margin-bottom: 4px; }
+    .taught-subtitle { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+    .allowed-colour { display: inline-block; }
     .description { margin: 0; color: var(--secondary); }
     .snapshot-note { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
     .empty-card { margin-top: 28px; padding: 24px 20px; }
@@ -164,6 +167,18 @@
           </span>
           <span class="chevron" aria-hidden="true">›</span>
         </a>
+        <section id="taught-info" class="card" aria-labelledby="taught-title" hidden>
+          <h2 id="taught-title" class="taught-title"></h2>
+          <p class="taught-subtitle">比赛现场在设备上录入</p>
+          <table class="specs">
+            <tbody>
+              <tr><th scope="row">尺寸</th><td id="taught-dimensions"></td></tr>
+              <tr><th scope="row">允许偏差</th><td id="taught-tolerance"></td></tr>
+              <tr><th scope="row">允许颜色</th><td id="taught-colours"></td></tr>
+              <tr><th scope="row">形状</th><td id="taught-shape"></td></tr>
+            </tbody>
+          </table>
+        </section>
         <section class="card" aria-labelledby="method-title">
           <h2 id="method-title">检测方式</h2>
           <p class="description">工件放上检测台并稳定后，FPGA 实时完成尺寸测量（ToF 测距 + 图像框选）、颜色与形状识别和污渍检测，判定结果显示在屏幕上，同时通过以太网生成检测卡片。</p>
@@ -218,6 +233,31 @@
       return Number.isSafeInteger(number) ? number : null;
     }
 
+    function parseStd(field) {
+      if (owns(STD, field)) return STD[field];
+      if (!field.startsWith("T")) return null;
+      const parts = field.split("_");
+      const slot = /^T([1-7])$/.exec(parts[0]);
+      if (!slot) return null;
+      const identity = { name: "录入标准件 " + Number(slot[1]) + " 号", taught: true };
+      if (parts.length === 1) return { ...identity, incomplete: true };
+      if (parts.length !== 8) return null;
+
+      const dimensions = parts.slice(1, 4).map(integer);
+      const tolerances = parts.slice(4, 6).map(integer);
+      const shape = integer(parts[7]);
+      if (dimensions.some((value) => value === null || value > 999) ||
+          tolerances.some((value) => value === null || value > 15) ||
+          shape === null || shape > 3 || !/^[0-9a-fA-F]+$/.test(parts[6])) return null;
+      const colourMask = Number.parseInt(parts[6], 16);
+      if (!Number.isSafeInteger(colourMask)) return null;
+      const colours = COLORS.flatMap((colour, index) => (colourMask & (1 << index)) ? [index] : []);
+      return {
+        ...identity, x: dimensions[0], y: dimensions[1], z: dimensions[2],
+        tolXY: tolerances[0], tolZ: tolerances[1], colours, colourMask, shape,
+      };
+    }
+
     function timestamp(value) {
       const year = 2000 + Number(value.slice(0, 2));
       const month = Number(value.slice(2, 4));
@@ -250,6 +290,8 @@
         resultCode: parts[9],
         arbitrary: parts[10] === "-",
         standardCode: /^[A-Za-z][A-Za-z0-9_-]*$/.test(parts[10]) ? parts[10] : null,
+        standard: parseStd(parts[10]),
+        taughtRequested: parts[10].startsWith("T"),
         reasons: reasonSet,
       };
     }
@@ -281,35 +323,40 @@
       text("result-detail", detail);
       byId("result-detail").hidden = !detail;
 
-      const standard = record.standardCode && owns(STD, record.standardCode) ? STD[record.standardCode] : null;
+      const standard = record.standard;
+      const hasDimensions = Boolean(standard && !standard.incomplete);
       const axes = ["x", "y", "z"];
       const reasonCodes = ["L", "W", "T"];
       axes.forEach((axis, index) => {
         const value = record.dimensions[index];
-        const delta = standard && value !== null ? value - standard[axis] : null;
-        const tolerance = standard ? (axis === "z" ? standard.tolZ : standard.tolXY) : null;
+        const delta = hasDimensions && value !== null ? value - standard[axis] : null;
+        const tolerance = hasDimensions ? (axis === "z" ? standard.tolZ : standard.tolXY) : null;
         text("value-" + axis, value === null ? "—" : String(value));
-        byId("comparison-" + axis).hidden = !standard;
-        text("standard-" + axis, standard ? "标准 " + standard[axis] + " ·" : "");
-        text("deviation-" + axis, standard ? "偏差 " + (delta === null ? "—" : deviation(delta)) : "");
+        byId("comparison-" + axis).hidden = !hasDimensions;
+        text("standard-" + axis, hasDimensions ? "标准 " + standard[axis] + " ·" : "");
+        text("deviation-" + axis, hasDimensions ? "偏差 " + (delta === null ? "—" : deviation(delta)) : "");
         const failed = record.reasons.has(reasonCodes[index]) || (delta !== null && Math.abs(delta) > tolerance);
         byId("measure-" + axis).classList.toggle("is-failed", failed);
       });
-      byId("tolerance").hidden = !standard;
-      text("tolerance", standard ? "允许偏差：长、宽 ±" + standard.tolXY + " mm，厚 ±" + standard.tolZ + " mm" : "");
+      byId("tolerance").hidden = !hasDimensions;
+      text("tolerance", hasDimensions ? "允许偏差：长、宽 ±" + standard.tolXY + " mm，厚 ±" + standard.tolZ + " mm" : "");
 
       text("color-value", record.color ? record.color.name : "未知");
       byId("color-swatch").hidden = !record.color;
       byId("color-swatch").style.backgroundColor = record.color ? record.color.value : "transparent";
       text("shape-value", record.shape);
       text("stain-value", record.stain);
-      text("mode-value", record.arbitrary ? "任意件（只测量）" : record.standardCode ? "按 " + record.standardCode + " 标准件比对" : "未知");
+      let mode = record.arbitrary ? "任意件（只测量）" : record.standardCode ? "按 " + record.standardCode + " 标准件比对" : "未知";
+      if (standard && standard.taught) mode = "按" + standard.name + "比对";
+      else if (record.taughtRequested) mode = "按标准件比对";
+      text("mode-value", mode);
       [["color-row", "C"], ["shape-row", "H"], ["stain-row", "S"]].forEach(([id, reason]) => {
         byId(id).classList.toggle("is-failed", record.reasons.has(reason));
       });
 
-      byId("standard-link").hidden = !standard;
-      if (standard) {
+      const hasPage = Boolean(standard && standard.page && standard.img);
+      byId("standard-link").hidden = !hasPage;
+      if (hasPage) {
         // Links and image paths come only from the local catalogue, never from the fragment.
         byId("standard-link").setAttribute("href", standard.page);
         byId("standard-image").setAttribute("src", standard.img);
@@ -319,6 +366,29 @@
       } else {
         byId("standard-link").removeAttribute("href");
         byId("standard-image").removeAttribute("src");
+      }
+
+      const hasTaughtInfo = hasDimensions && standard.taught;
+      byId("taught-info").hidden = !hasTaughtInfo;
+      byId("taught-colours").replaceChildren();
+      if (hasTaughtInfo) {
+        text("taught-title", standard.name);
+        text("taught-dimensions", standard.x + " × " + standard.y + " × " + standard.z + " mm");
+        text("taught-tolerance", "长、宽 ±" + standard.tolXY + " mm，厚 ±" + standard.tolZ + " mm");
+        text("taught-shape", SHAPES[String(standard.shape)]);
+        if (standard.colourMask === 0) text("taught-colours", "不判颜色");
+        else if (!standard.colours.length) text("taught-colours", "未知");
+        else standard.colours.forEach((index, position) => {
+          if (position) byId("taught-colours").append(document.createTextNode("、"));
+          const label = document.createElement("span");
+          label.className = "allowed-colour";
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.setAttribute("aria-hidden", "true");
+          swatch.style.backgroundColor = COLORS[index].value;
+          label.append(swatch, document.createTextNode(COLORS[index].name));
+          byId("taught-colours").append(label);
+        });
       }
     }
 
